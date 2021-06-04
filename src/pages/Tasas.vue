@@ -2,7 +2,7 @@
   <q-page class="text-center bg-blue-grey-1">
     <div class="row">
       <div class="col-12 q-mt-sm q-px-md">
-        <h3 class="text-h6 text-weight-bolder">CONSULTA TASAS</h3>
+        <h3 class="text-h6 text-weight-bolder">CONSULTA</h3>
 <!--        <div class="q-pa-md" >-->
 <!--          <q-input-->
 <!--            ref="input"-->
@@ -17,10 +17,10 @@
           <q-input
             filled
             color="teal"
-            label="Carnet de identidad"
-            hint="Porfavor colocar el carnet de identidad mas la extencion"
+            label="Numero inmueble"
+            hint="Porfavor colocar el numero del inmueble registrado"
             :rules="[val => !!val || 'Este campo es requerido',val => val.length>5  || 'Debe ser mayor a 5 digitos']"
-            v-model="carnet"
+            v-model="numinmueble"
             required
           />
 
@@ -45,7 +45,7 @@
         </form>
         <q-table
           v-if="table"
-          title="Deuda Total:1025"
+          :title=total
           :data="data"
           :columns="columns"
           row-key="name"
@@ -54,16 +54,19 @@
     </div>
 
 
-
   </q-page>
 </template>
 
 <script>
+import { api } from 'boot/axios'
 export default {
   name: 'PageIndex',
+  created() {
+    // console.log(process.env.URL)
+  },
   data () {
     return {
-      carnet:'',
+      numinmueble:53834601,
       table:false,
       test: '',
       submitting: false,
@@ -130,12 +133,54 @@ export default {
       // When we are done, we reset "submitting"
       // Boolean to false to restore the
       // initial state.
-      setTimeout(() => {
-        // delay simulated, we are done,
-        // now restoring submit to its initial state
-        this.submitting = false;
-        this.table=true;
-      }, 3000)
+      // setTimeout(() => {
+      //   // delay simulated, we are done,
+      //   // now restoring submit to its initial state
+      //   this.submitting = false;
+      //   this.table=true;
+      // }, 3000)
+      this.data=[];
+      api.post('/api/tasas',{cantidad:this.numinmueble})
+        .then((response) => {
+          // this.data = response.data
+          // console.log(response.data);
+          if (response.data.length>0){
+            response.data.forEach(re=>{
+              // console.log(re);
+              re.forEach(r=>{
+                // console.log(r);
+                this.data.push({
+                  gestion: r.gest,
+                  concepto: 'TASAS',
+                  monto: r.Pagado,
+                })
+              })
+            })
+          }
+          this.table=true;
+          this.submitting = false;
+        })
+        .catch(() => {
+          this.table=false;
+          this.submitting = false;
+          this.$q.notify({
+            color: 'negative',
+            position: 'top',
+            message: 'No tiene conexion a internet',
+            icon: 'report_problem'
+          })
+        })
+    }
+  },
+  computed:{
+    total: function(){
+
+      var sum = 0;
+      this.data.forEach(e => {
+        sum += parseFloat(e.monto);
+      });
+      return 'Total pagado '+sum
+
     }
   }
 }
